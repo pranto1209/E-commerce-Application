@@ -1,2 +1,2 @@
 # E-commerce-Application
-E-commerce store with .NET and Angular
+E-commerce Application with .NET and Angular
