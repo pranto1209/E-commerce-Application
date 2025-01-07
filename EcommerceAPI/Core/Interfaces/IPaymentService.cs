@@ -1,12 +1,9 @@
-using Core.Entities;
-using Core.Entities.OrderAggregate;
+﻿using Core.Entities;
 
-namespace Core.Interfaces
+namespace Core.Interfaces;
+
+public interface IPaymentService
 {
-    public interface IPaymentService
-    {
-        Task<CustomerBasket> CreateOrUpdatePaymentIntent(string basketId);
-        Task<Order> UpdateOrderPaymentSucceeded(string paymentIntentId);
-        Task<Order> UpdateOrderPaymentFailed(string paymentIntentId);
-    }
+    Task<ShoppingCart?> CreateOrUpdatePaymentIntent(string cartId);
+    Task<string> RefundPayment(string paymentIntentId);
 }

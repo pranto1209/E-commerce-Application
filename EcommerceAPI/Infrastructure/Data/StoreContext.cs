@@ -1,40 +1,23 @@
-using System.Reflection;
-using Core.Entities;
+﻿using Core.Entities;
 using Core.Entities.OrderAggregate;
+using Infrastructure.Config;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
-namespace Infrastructue.Data
+namespace Infrastructure.Data;
+
+public class StoreContext(DbContextOptions options) : IdentityDbContext<AppUser>(options)
 {
-    public class StoreContext : DbContext
+    public DbSet<Product> Products { get; set; }
+    public DbSet<Address> Addresses { get; set; }
+    public DbSet<DeliveryMethod> DeliveryMethods { get; set; }
+    public DbSet<Order> Orders { get; set; }
+    public DbSet<OrderItem> OrderItems { get; set; }
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        public StoreContext(DbContextOptions<StoreContext> options) : base(options)
-        {
-        }
+        base.OnModelCreating(modelBuilder);
 
-        public DbSet<Product> Products { get; set; }
-        public DbSet<ProductBrand> ProductBrands { get; set; }
-        public DbSet<ProductType> ProductTypes { get; set; }
-        public DbSet<Order> Orders { get; set; }
-        public DbSet<OrderItem> OrderItems { get; set; }
-        public DbSet<DeliveryMethod> DeliveryMethods { get; set; }
-
-        protected override void OnModelCreating(ModelBuilder modelBuilder)
-        {
-            base.OnModelCreating(modelBuilder);
-            modelBuilder.ApplyConfigurationsFromAssembly(Assembly.GetExecutingAssembly());
-
-            if (Database.ProviderName == "Microsoft.EntityFrameworkCore.Sqlite")
-            {
-                foreach (var entityType in modelBuilder.Model.GetEntityTypes())
-                {
-                    var properties = entityType.ClrType.GetProperties().Where(p => p.PropertyType == typeof(decimal));
-
-                    foreach (var property in properties)
-                    {
-                        modelBuilder.Entity(entityType.Name).Property(property.Name).HasConversion<double>();
-                    }
-                }
-            }
-        }
+        modelBuilder.ApplyConfigurationsFromAssembly(typeof(ProductConfiguration).Assembly);
     }
 }

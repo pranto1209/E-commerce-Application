@@ -1,75 +1,107 @@
-using API.Dtos;
-using API.Errors;
-using API.Helpers;
-using AutoMapper;
+﻿using API.RequestHelpers;
 using Core.Entities;
 using Core.Interfaces;
 using Core.Specifications;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace API.Controllers
+namespace API.Controllers;
+
+public class ProductsController(IUnitOfWork unit) : BaseApiController
 {
-    public class ProductsController : BaseApiController
+    [Cache(600)]
+    [HttpGet]
+    public async Task<ActionResult<IReadOnlyList<Product>>> GetProducts(
+        [FromQuery]ProductSpecParams specParams)
     {
-        private readonly IGenericRepository<ProductBrand> _productBrandRepo;
-        private readonly IGenericRepository<ProductType> _productTypeRepo;
-        private readonly IGenericRepository<Product> _productsRepo;
-        private readonly IMapper _mapper;
+        var spec = new ProductSpecification(specParams);
 
-        public ProductsController(IGenericRepository<Product> productsRepo,
-            IGenericRepository<ProductType> productTypeRepo,
-            IGenericRepository<ProductBrand> productBrandRepo, IMapper mapper)
+        return await CreatePagedResult(unit.Repository<Product>(), spec, specParams.PageIndex, specParams.PageSize);
+    }
+
+    [Cache(600)]
+    [HttpGet("{id:int}")] // api/products/2
+    public async Task<ActionResult<Product>> GetProduct(int id)
+    {
+        var product = await unit.Repository<Product>().GetByIdAsync(id);
+
+        if (product == null) return NotFound();
+
+        return product;
+    }
+
+    [InvalidateCache("api/products|")]
+    [Authorize(Roles = "Admin")]
+    [HttpPost]
+    public async Task<ActionResult<Product>> CreateProduct(Product product)
+    {
+        unit.Repository<Product>().Add(product);
+
+        if (await unit.Complete())
         {
-            _mapper = mapper;
-            _productsRepo = productsRepo;
-            _productTypeRepo = productTypeRepo;
-            _productBrandRepo = productBrandRepo;
+            return CreatedAtAction("GetProduct", new { id = product.Id }, product);
         }
 
-        [Cached(600)]
-        [HttpGet]
-        public async Task<ActionResult<Pagination<ProductToReturnDto>>> GetProducts(
-            [FromQuery] ProductSpecParams productParams)
+        return BadRequest("Problem creating product");
+    }
+
+    [InvalidateCache("api/products|")]
+    [Authorize(Roles = "Admin")]
+    [HttpPut("{id:int}")]
+    public async Task<ActionResult> UpdateProduct(int id, Product product)
+    {
+        if (product.Id != id || !ProductExists(id))
+            return BadRequest("Cannot update this product");
+
+        unit.Repository<Product>().Update(product);
+
+        if (await unit.Complete())
         {
-            var spec = new ProductsWithTypesAndBrandsSpecification(productParams);
-            var countSpec = new ProductsWithFiltersForCountSpecification(productParams);
-
-            var totalItems = await _productsRepo.CountAsync(countSpec);
-            var products = await _productsRepo.ListAsync(spec);
-
-            var data = _mapper.Map<IReadOnlyList<ProductToReturnDto>>(products);
-
-            return Ok(new Pagination<ProductToReturnDto>(productParams.PageIndex,
-                productParams.PageSize, totalItems, data));
+            return NoContent();
         }
 
-        [Cached(600)]
-        [HttpGet("{id}")]
-        [ProducesResponseType(StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(ApiResponse), StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<ProductToReturnDto>> GetProduct(int id)
+        return BadRequest("Problem updating the product");
+    }
+
+    [InvalidateCache("api/products|")]
+    [Authorize(Roles = "Admin")]
+    [HttpDelete("{id:int}")]
+    public async Task<ActionResult> DeleteProduct(int id)
+    {
+        var product = await unit.Repository<Product>().GetByIdAsync(id);
+
+        if (product == null) return NotFound();
+
+        unit.Repository<Product>().Remove(product);
+
+        if (await unit.Complete())
         {
-            var spec = new ProductsWithTypesAndBrandsSpecification(id);
-
-            var product = await _productsRepo.GetEntityWithSpec(spec);
-
-            if (product == null) return NotFound(new ApiResponse(404));
-
-            return _mapper.Map<Product, ProductToReturnDto>(product);
+            return NoContent();
         }
 
-        [Cached(600)]
-        [HttpGet("brands")]
-        public async Task<ActionResult<IReadOnlyList<ProductBrand>>> GetProductBrands()
-        {
-            return Ok(await _productBrandRepo.ListAllAsync());
-        }
+        return BadRequest("Problem deleting the product");
+    }
 
-        [Cached(600)]
-        [HttpGet("types")]
-        public async Task<ActionResult<IReadOnlyList<ProductBrand>>> GetProductTypes()
-        {
-            return Ok(await _productTypeRepo.ListAllAsync());
-        }
+    [Cache(10000)]
+    [HttpGet("brands")]
+    public async Task<ActionResult<IReadOnlyList<string>>> GetBrands()
+    {
+        var spec = new BrandListSpecification();
+
+        return Ok(await unit.Repository<Product>().ListAsync(spec));
+    }
+
+    [Cache(10000)]
+    [HttpGet("types")]
+    public async Task<ActionResult<IReadOnlyList<string>>> GetTypes()
+    {
+        var spec = new TypeListSpecification();
+
+        return Ok(await unit.Repository<Product>().ListAsync(spec));
+    }
+
+    private bool ProductExists(int id)
+    {
+        return unit.Repository<Product>().Exists(id);
     }
 }

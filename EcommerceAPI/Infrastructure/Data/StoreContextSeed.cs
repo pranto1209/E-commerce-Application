@@ -1,46 +1,54 @@
-using System.Reflection;
+﻿using System.Reflection;
 using System.Text.Json;
 using Core.Entities;
-using Core.Entities.OrderAggregate;
-using Infrastructue.Data;
+using Microsoft.AspNetCore.Identity;
 
-namespace Infrastructure.Data
+namespace Infrastructure.Data;
+
+public class StoreContextSeed
 {
-    public class StoreContextSeed
+    public static async Task SeedAsync(StoreContext context, UserManager<AppUser> userManager)
     {
-        public static async Task SeedAsync(StoreContext context)
+        if (!userManager.Users.Any(x => x.UserName == "admin@test.com"))
         {
-            var path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-
-            if (!context.ProductBrands.Any())
+            var user = new AppUser
             {
-                var brandsData = File.ReadAllText(path + @"/Data/SeedData/brands.json");
-                var brands = JsonSerializer.Deserialize<List<ProductBrand>>(brandsData);
-                context.ProductBrands.AddRange(brands);
-            }
+                UserName = "admin@test.com",
+                Email = "admin@test.com",
+            };
 
-            if (!context.ProductTypes.Any())
-            {
-                var typesData = File.ReadAllText(path + @"/Data/SeedData/types.json");
-                var types = JsonSerializer.Deserialize<List<ProductType>>(typesData);
-                context.ProductTypes.AddRange(types);
-            }
+            await userManager.CreateAsync(user, "Pa$$w0rd");
+            await userManager.AddToRoleAsync(user, "Admin");
+        }
 
-            if (!context.Products.Any())
-            {
-                var productsData = File.ReadAllText(path + @"/Data/SeedData/products.json");
-                var products = JsonSerializer.Deserialize<List<Product>>(productsData);
-                context.Products.AddRange(products);
-            }
+        var path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
 
-            if (!context.DeliveryMethods.Any())
-            {
-                var deliveryData = File.ReadAllText(path + @"/Data/SeedData/delivery.json");
-                var methods = JsonSerializer.Deserialize<List<DeliveryMethod>>(deliveryData);
-                context.DeliveryMethods.AddRange(methods);
-            }
+        if (!context.Products.Any())
+        {
+            var productsData = await File
+                .ReadAllTextAsync(path + @"/Data/SeedData/products.json");
 
-            if (context.ChangeTracker.HasChanges()) await context.SaveChangesAsync();
+            var products = JsonSerializer.Deserialize<List<Product>>(productsData);
+
+            if (products == null) return;
+
+            context.Products.AddRange(products);
+
+            await context.SaveChangesAsync();
+        }
+
+        if (!context.DeliveryMethods.Any())
+        {
+            var dmData = await File
+                .ReadAllTextAsync(path + @"/Data/SeedData/delivery.json");
+
+            var methods = JsonSerializer.Deserialize<List<DeliveryMethod>>(dmData);
+
+            if (methods == null) return;
+
+            context.DeliveryMethods.AddRange(methods);
+
+            await context.SaveChangesAsync();
         }
     }
 }

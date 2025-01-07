@@ -1,10 +1,9 @@
-using Core.Entities;
+﻿using Core.Entities;
 
-namespace Core.Interfaces
+namespace Core.Interfaces;
+
+public interface IUnitOfWork : IDisposable
 {
-    public interface IUnitOfWork : IDisposable
-    {
-        IGenericRepository<TEntity> Repository<TEntity>() where TEntity : BaseEntity;
-        Task<int> Complete();
-    }
+    IGenericRepository<TEntity> Repository<TEntity>() where TEntity : BaseEntity;
+    Task<bool> Complete();
 }
