@@ -1,4 +1,4 @@
-# Skinet Project Repository
+# E-commerce Application
 
 Welcome to the brand new version of the SkiNet app created for the Udemy training course available [here](https://www.udemy.com/course/learn-to-build-an-e-commerce-app-with-net-core-and-angular).
 
