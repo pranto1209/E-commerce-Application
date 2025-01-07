@@ -1,11 +1,10 @@
-export interface Product {
+export type Product = {
     id: number;
     name: string;
     description: string;
     price: number;
     pictureUrl: string;
-    productType: string;
-    productBrand: string;
+    type: string;
+    brand: string;
+    quantityInStock: number;
 }
-
-export class Product implements Product {}
