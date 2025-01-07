@@ -1,14 +1,10 @@
 # E-commerce Application
 
-Welcome to the brand new version of the SkiNet app created for the Udemy training course available [here](https://www.udemy.com/course/learn-to-build-an-e-commerce-app-with-net-core-and-angular).
-
-This has been rewritten from scratch to take advantage of and to make it (hopefully) a bit more futureproof.  This app is built using .Net 8 and Angular 18 
+A web application for E-commerce. C# ASP.NET Web API used for Backend RESTful API Services. Entity Framework used for queries and updates the database. ASP.NET Identity used for login and registration. Includes paging, sorting, searching, filtering, shopping cart, checkout features. Payments via Stripe using the new EU standards for 3D secure. Angular used for Frontend development to consume REST API. Used Angular routing and Angular services.
 
 # Running the project
 
-You can see a live demo of this project [here](https://skinet-course.azurewebsites.net/).
-
-You can also run this app locally.  To run this project locally you will need to have installed:
+You can run this app locally.  To run this project locally you will need to have installed:
 
 1. Docker
 2. .Net SDK v8
@@ -26,6 +22,12 @@ cd skinet-2024
 ```bash
 # From the solution folder (skinet-2024)
 dotnet restore
+
+# Migration Database
+dotnet ef migrations add InitialMigration --project Infrastructure/Infrastructure.csproj --startup-project API/API.csproj
+dotnet ef database drop --project Infrastructure/Infrastructure.csproj --startup-project API/API.csproj
+dotnet ef database update --project Infrastructure/Infrastructure.csproj --startup-project API/API.csproj
+
 
 # Change directory to client to run the npm install.  Only necessary if you want to run
 # the angular app in development mode using the angular dev server
